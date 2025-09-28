@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Shark Foraging Hotspots</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .info-box {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            max-width: 300px;
+            z-index: 1000; /* Ensures it's on top of the map */
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div class="info-box">
+    <h1>Shark Foraging Hotspots</h1>
+    <p>This map shows the predicted probability of blue shark foraging activity in the North Atlantic, based on a machine learning model trained on satellite tracking data.</p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+<script>
+    // 1. Initialize the Leaflet map
+    const map = L.map('map').setView([40, -65], 4); // Center on the North Atlantic
+
+    // 2. Add a free dark-themed basemap from CartoDB
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    // 3. Load your GeoJSON data and create the heatmap
+    fetch('hotspots.geojson')
+        .then(response => response.json())
+        .then(data => {
+            // The Leaflet.heat plugin needs data in a specific format:
+            // an array of [latitude, longitude, intensity]
+            const heatData = data.features.map(feature => {
+                const lon = feature.geometry.coordinates[0];
+                const lat = feature.geometry.coordinates[1];
+                const probability = feature.properties.probability;
+                return [lat, lon, probability]; // Format: [lat, lon, intensity]
+            });
+
+            // Create the heatmap layer and add it to the map
+            L.heatLayer(heatData, {
+                radius: 25,
+                blur: 15,
+                maxZoom: 10,
+                gradient: {0.4: 'blue', 0.65: 'lime', 1: 'red'}
+            }).addTo(map);
+        })
+        .catch(error => console.error('Error loading GeoJSON:', error));
+</script>
+
+</body>
+</html>
